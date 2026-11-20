@@ -1,0 +1,40 @@
+{
+  "faculty": [
+    {
+      "faculty_id": "F001",
+      "name": "Dr Asha Rao",
+      "department": "CSE",
+      "consent": {"scholar": true, "scopus": true, "wos": true},
+      "profiles": {
+        "scholar": "https://scholar.example/F001",
+        "scopus": "https://scopus.example/F001",
+        "wos": "https://wos.example/F001"
+      }
+    },
+    {
+      "faculty_id": "F002",
+      "name": "Dr Vikram Sen",
+      "department": "CSE",
+      "consent": {"scholar": true, "scopus": true, "wos": true},
+      "profiles": {
+        "scholar": "https://scholar.example/F002",
+        "scopus": "https://scopus.example/F002",
+        "wos": "https://wos.example/F002"
+      }
+    }
+  ],
+  "publications": [
+    {"source_id":"GS-101","faculty_id":"F001","source":"scholar","title":"Auditable Multi-Agent Workflows","year":2024,"doi":"10.1000/a1","citations":18,"authors":["Asha Rao","M Lee"],"url":"https://scholar.example/GS-101","retrieved":"2026-08-24"},
+    {"source_id":"SC-501","faculty_id":"F001","source":"scopus","title":"Auditable Multi Agent Workflows","year":2024,"doi":"10.1000/a1","citations":17,"authors":["Rao A","Lee M"],"url":"https://scopus.example/SC-501","retrieved":"2026-08-24"},
+    {"source_id":"WO-701","faculty_id":"F001","source":"wos","title":"Auditable Multi-Agent Workflows","year":2024,"doi":"10.1000/a1","citations":16,"authors":["Rao, A.","Lee, M."],"url":"https://wos.example/WO-701","retrieved":"2026-08-24"},
+    {"source_id":"GS-102","faculty_id":"F001","source":"scholar","title":"Reliable Retrieval for Academic Analytics","year":2023,"doi":"10.1000/a2","citations":9,"authors":["Asha Rao"],"url":"https://scholar.example/GS-102","retrieved":"2026-08-24"},
+    {"source_id":"SC-502","faculty_id":"F001","source":"scopus","title":"Reliable Retrieval for Academic Analytics","year":2023,"doi":"10.1000/a2","citations":8,"authors":["Rao A"],"url":"https://scopus.example/SC-502","retrieved":"2026-08-24"},
+    {"source_id":"WO-702","faculty_id":"F001","source":"wos","title":"Reliable Retrieval for Academic Analytics","year":2023,"doi":"10.1000/a2","citations":8,"authors":["Rao, A."],"url":"https://wos.example/WO-702","retrieved":"2026-08-24"},
+    {"source_id":"GS-201","faculty_id":"F002","source":"scholar","title":"Human-Gated Research Automation","year":2025,"doi":"10.1000/v1","citations":12,"authors":["Vikram Sen","A Rao"],"url":"https://scholar.example/GS-201","retrieved":"2026-08-24"},
+    {"source_id":"SC-601","faculty_id":"F002","source":"scopus","title":"Human-Gated Research Automation","year":2025,"doi":"10.1000/v1","citations":11,"authors":["Sen V","Rao A"],"url":"https://scopus.example/SC-601","retrieved":"2026-08-24"},
+    {"source_id":"WO-801","faculty_id":"F002","source":"wos","title":"Human-Gated Research Automation","year":2025,"doi":"10.1000/v1","citations":10,"authors":["Sen, V.","Rao, A."],"url":"https://wos.example/WO-801","retrieved":"2026-08-24"},
+    {"source_id":"GS-202","faculty_id":"F002","source":"scholar","title":"Graph Validation in Education Systems","year":2022,"doi":"10.1000/v2","citations":6,"authors":["Vikram Sen"],"url":"https://scholar.example/GS-202","retrieved":"2026-08-24"},
+    {"source_id":"SC-602","faculty_id":"F002","source":"scopus","title":"Graph Validation in Education Systems","year":2022,"doi":"10.1000/v2","citations":6,"authors":["Sen V"],"url":"https://scopus.example/SC-602","retrieved":"2026-08-24"},
+    {"source_id":"WO-802","faculty_id":"F002","source":"wos","title":"Graph Validation in Education Systems","year":2022,"doi":"10.1000/v2","citations":5,"authors":["Sen, V."],"url":"https://wos.example/WO-802","retrieved":"2026-08-24"}
+  ]
+}
