@@ -1,5 +1,6 @@
 """Persisted faculty consent requests and named-Dean human-review assignments."""
 import json
+import hashlib
 import uuid
 from dataclasses import asdict
 from datetime import datetime,timezone,timedelta
@@ -17,6 +18,8 @@ class HumanWorkflow:
             CREATE UNIQUE INDEX IF NOT EXISTS one_active_dean_request ON dean_review_requests(run_id) WHERE status IN ('pending','accepted');
             CREATE TABLE IF NOT EXISTS workflow_events(actor_id INTEGER,action TEXT,entity_id TEXT,details TEXT,happened_at TEXT);
             ''')
+            if 'batch_id' not in {r[1] for r in db.execute('PRAGMA table_info(consent_requests)')}:
+                db.execute('ALTER TABLE consent_requests ADD COLUMN batch_id TEXT')
 
     def event(self,db,action,entity,details):
         db.execute('INSERT INTO workflow_events VALUES (?,?,?,?,?)',(self.user['id'],action,entity,json.dumps(details),now()))
@@ -58,6 +61,63 @@ class HumanWorkflow:
             db.execute('INSERT INTO consent_requests(id,faculty_id,requester_id,requester_name,sources,links,message,status,created_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?)',(request_id,faculty_id,self.user['id'],self.user['name'],json.dumps(sources),json.dumps(proposed_links),message,'pending',created,expires))
             self.event(db,'consent.requested',request_id,{'faculty_id':faculty_id,'sources':sources})
         return {'request_id':request_id,'status':'pending','faculty_id':faculty_id}
+
+    def _consent_batch_plan(self,db,body):
+        scope=body.get('scope')
+        if scope not in {'department','institution'}:raise ValueError('Choose department or institution scope')
+        sources=body.get('sources')
+        if not isinstance(sources,list) or not sources or any(s not in {'scholar','scopus','wos'} for s in sources):
+            raise ValueError('Select one or more supported sources')
+        sources=sorted(set(sources));message=str(body.get('message','')).strip()
+        if not 1<=len(message)<=2000:raise ValueError('Provide a purpose/message of 1–2000 characters')
+        department=str(body.get('department','')).strip()
+        stored=db.execute("SELECT body FROM documents WHERE path='source_data.json'").fetchone()
+        profiles=json.loads(stored[0])['faculty'] if stored else self.actions.service.faculty_profiles()
+        if scope=='department':
+            profiles=[f for f in profiles if f['department'].casefold()==department.casefold()]
+            if not department or not profiles:raise ValueError('Choose an existing department')
+        active={r[0] for r in db.execute("SELECT faculty_id FROM users WHERE active=1 AND role='faculty'")}
+        pending={}
+        for faculty_id,source_json in db.execute("SELECT faculty_id,sources FROM consent_requests WHERE status='pending' AND expires_at>?",(now(),)):
+            pending.setdefault(faculty_id,set()).update(json.loads(source_json))
+        recipients=[];skipped=[]
+        for profile in profiles:
+            fid=profile['faculty_id'];item={'faculty_id':fid,'name':profile['name'],'department':profile['department']}
+            if fid not in active:
+                skipped.append({**item,'reason':'No active faculty account'});continue
+            missing=[s for s in sources if not profile.get('consent',{}).get(s)]
+            if not missing:
+                skipped.append({**item,'reason':'Consent already granted for selected sources'});continue
+            requested=[s for s in missing if s not in pending.get(fid,set())]
+            if not requested:
+                skipped.append({**item,'reason':'An active request already covers these sources'});continue
+            links={s:profile.get('profiles',{}).get(s,'') for s in requested}
+            try:validate_profile_links({'consent':{s:True for s in requested},'profiles':links})
+            except ValueError as exc:
+                skipped.append({**item,'reason':'Missing or invalid saved profile link: '+str(exc)});continue
+            recipients.append({**item,'sources':requested,'profiles':links})
+        plan={'scope':scope,'department':department if scope=='department' else '', 'message':message,
+              'sources':sources,'recipients':recipients,'skipped':skipped,'recipient_count':len(recipients),'skipped_count':len(skipped)}
+        plan['preview_token']=hashlib.sha256(json.dumps(plan,sort_keys=True).encode()).hexdigest()
+        return plan
+
+    def request_consent_batch(self,body):
+        require(self.user,'request_consent')
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            plan=self._consent_batch_plan(db,body)
+            if body.get('confirm') is not True:return {**plan,'status':'preview'}
+            if body.get('preview_token')!=plan['preview_token']:
+                raise ValueError('Recipients or request details changed. Preview the request again before sending.')
+            if not plan['recipients']:raise ValueError('No eligible faculty recipients. Review the skipped reasons.')
+            batch_id=uuid.uuid4().hex;created=now();expires=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
+            for recipient in plan['recipients']:
+                request_id=uuid.uuid4().hex
+                db.execute('INSERT INTO consent_requests(id,faculty_id,requester_id,requester_name,sources,links,message,status,created_at,expires_at,batch_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                    (request_id,recipient['faculty_id'],self.user['id'],self.user['name'],json.dumps(recipient['sources']),json.dumps(recipient['profiles']),plan['message'],'pending',created,expires,batch_id))
+                self.event(db,'consent.requested',request_id,{'faculty_id':recipient['faculty_id'],'sources':recipient['sources'],'batch_id':batch_id})
+            self.event(db,'consent.batch_requested',batch_id,{'scope':plan['scope'],'department':plan['department'],'sent':plan['recipient_count'],'skipped':plan['skipped_count']})
+        return {'batch_id':batch_id,'status':'pending','sent':plan['recipient_count'],'skipped':plan['skipped_count']}
 
     def respond_consent(self,body):
         require(self.user,'respond_consent');decision=body.get('decision')

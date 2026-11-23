@@ -25,6 +25,8 @@ def visible_run(run,identity):
         report['faculty_results']=results
         pubs={p['publication_id']:p for r in results for p in r.get('publications',[])}
         report['summary']={'faculty':1,'publications':len(pubs),'citations':sum(p['citations'] for p in pubs.values() if p.get('verified'))}
+    from .report_insights import report_insights
+    report['insights']=report_insights({**report,'plan':run.get('plan',{})})
     return {k:copy.deepcopy(run.get(k)) for k in ('run_id','status','plan','validation','created_at')}|{'report':report}|({'review_assignment':copy.deepcopy(run.get('review_assignment',{}))} if identity['role']!='faculty' else {})
 
 
@@ -120,7 +122,7 @@ class RoleHandler(W.Handler):
             if path=='/api/assistant/confirm':
                 from .assistant import confirm
                 return self.send_json(confirm(Actions(user,W.SERVICE,W.DEFAULT_RUNTIME,self.accounts),body.get('pending_id','')))
-            if path in {'/api/users','/api/users/disable','/api/ai-key','/api/ai-disable','/api/faculty','/api/upload','/api/personal-report','/api/chat','/api/approve','/api/review-duplicate','/api/review-attribution','/api/resume','/api/rollback','/api/import','/api/consent/request','/api/consent/respond','/api/review/request','/api/review/respond'}:
+            if path in {'/api/users','/api/users/disable','/api/users/designation','/api/ai-key','/api/ai-disable','/api/faculty','/api/upload','/api/personal-report','/api/chat','/api/approve','/api/review-duplicate','/api/review-attribution','/api/resume','/api/rollback','/api/import','/api/consent/request','/api/consent/batch','/api/consent/respond','/api/review/request','/api/review/respond'}:
                 return self.send_json(Actions(user,W.SERVICE,W.DEFAULT_RUNTIME,self.accounts).execute(path,body))
             if path in {'/api/users/delete','/api/reports/delete'}:
                 return self.send_json(Actions(user,W.SERVICE,W.DEFAULT_RUNTIME,self.accounts).execute(path,body))

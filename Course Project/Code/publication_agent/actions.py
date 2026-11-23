@@ -36,7 +36,7 @@ class Actions:
 
     @staticmethod
     def run_summary(run):
-        return {**run,'report':{k:v for k,v in run.get('report',{}).items() if k in {'title','summary','version','status'}},'detail_loaded':False}
+        return {**run,'report':{k:v for k,v in run.get('report',{}).items() if k in {'title','summary','version','status','insights','scope','citation_basis'}},'detail_loaded':False}
 
     def publications_page(self,page=1,page_size=50,query='',year=None):
         from .role_web import allowed_department
@@ -95,7 +95,7 @@ class Actions:
         user=self.user;service=self.service
         if path=='/api/onboarding':
             return self.accounts.confirm_department(user,body.get('department'),service)
-        workflow_routes={'/api/consent/request':'request_consent','/api/consent/respond':'respond_consent','/api/review/request':'request_review','/api/review/respond':'respond_review'}
+        workflow_routes={'/api/consent/request':'request_consent','/api/consent/batch':'request_consent_batch','/api/consent/respond':'respond_consent','/api/review/request':'request_review','/api/review/respond':'respond_review'}
         if path in workflow_routes:
             from .human_workflow import HumanWorkflow
             return getattr(HumanWorkflow(self),workflow_routes[path])(body)
@@ -105,6 +105,9 @@ class Actions:
             return self.accounts.create(body,user)
         if path=='/api/users/disable':
             require(user,'accounts');self.accounts.disable(int(body['user_id']),user);return {'disabled':True}
+        if path=='/api/users/designation':
+            require(user,'accounts')
+            return self.accounts.set_designation(int(body['user_id']),body.get('designation',''),user)
         if path=='/api/users/delete':
             require(user,'accounts')
             if body.get('confirm') is not True:raise ValueError('Explicit deletion confirmation is required')
@@ -178,7 +181,7 @@ class Actions:
                 if assignment:return app.approve(body['run_id'],user['name'],ROLE_LABELS[user['role']],body.get('edits'),reviewer_id=user['id'])
                 return app.approve(body['run_id'],user['name'],ROLE_LABELS[user['role']],body.get('edits'))
             if path=='/api/review-duplicate':return app.review_duplicate(body['run_id'],body['faculty_id'],body['group'],body['decision'],user['name'])
-            if path=='/api/review-attribution':return app.review_attribution(body['run_id'],body['faculty_id'],body['note'],user['name'])
+            if path=='/api/review-attribution':return app.review_attribution(body['run_id'],body['faculty_id'],body.get('note',''),user['name'],checks=body.get('checks'))
             return asdict(app.resume(body['run_id']))
         if path=='/api/rollback':
             require(user,'rollback');return service.app.rollback(int(body['version']))

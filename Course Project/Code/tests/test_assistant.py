@@ -62,6 +62,9 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(len(runs),1)
         self.assertEqual({r['faculty']['faculty_id'] for r in runs[0]['report']['faculty_results']},{'F001'})
         self.assertIn('reply',reply)
+        self.assertIn('imported citations',reply['reply'])
+        self.assertEqual(reply['actions'][0]['type'],'open_report')
+        self.assertEqual(len(agent.llm.calls),1)
 
     def test_model_cannot_promote_faculty_or_publish(self):
         agent=self.assistant('asha')
@@ -122,6 +125,28 @@ class AssistantTests(unittest.TestCase):
         agent.tool('upload',{'kind':'roster','faculty_id':'F002'})
         self.assertEqual(agent.ui[-1]['defaults']['faculty_id'],'F001')
         self.assertEqual(agent.ui[-1]['defaults']['kind'],'publication')
+
+    def test_first_vague_report_request_asks_for_year_without_tools(self):
+        model=ScriptedModel('generate_report')
+        reply=self.assistant('asha',model).chat('make report')
+        self.assertIn('Which reporting year',reply['reply'])
+        self.assertEqual(model.calls,[])
+        self.assertEqual(reply['actions'],[])
+        self.assertEqual(self.gateway('asha').workspace()['runs'],[])
+
+    def test_repeated_tool_calls_stop_without_repeating_secure_form(self):
+        class RepeatingModel(ScriptedModel):
+            def invoke(self,messages):
+                self.calls.append(list(messages))
+                return AIMessage(content='',tool_calls=[{'name':'portal_action',
+                    'args':{'action':'upload','parameters':{}},
+                    'id':f'tool-{len(self.calls)}','type':'tool_call'}])
+        model=RepeatingModel()
+        reply=self.assistant('asha',model).chat('Upload my publications')
+        self.assertEqual(len(model.calls),2)
+        self.assertEqual(len(reply['actions']),1)
+        self.assertIn('displayed form',reply['reply'])
+        self.assertNotIn('action limit',reply['reply'])
 
 
 if __name__=='__main__':unittest.main()

@@ -1,5 +1,23 @@
 # Research Intelligence & Publication Analytics Portal
 
+## Report and workspace updates
+
+Reports use a dropdown to show one report at a time. Imported citation totals,
+imported-record h-index and average citations are displayed separately from
+cross-source corroboration. Charts show publication-year trends, current citation
+snapshots grouped by publication year, top-cited papers, source corroboration and
+missing metadata. Hover or keyboard-focus chart bars for values; the full
+publication appendix retains source links and retrieval dates. These snapshots
+are not citations received during the reporting year.
+
+The assistant gives a deterministic completion summary and an **Open generated
+report** action after successful report generation. Incomplete requests ask for a
+year; repeated tool calls are bounded. **Back** restores the previous workspace
+screen and its filters, pagination and expanded content.
+
+See `ACCOUNTS.md` for department/designation account filters and `HUMAN_WORKFLOW.md`
+for group consent requests and the reviewer attribution checklist.
+
 Local MCP integration: see `MCP.md`. Gemini report runs now route their LangChain
 research tools through an automatically managed local stdio MCP server.
 

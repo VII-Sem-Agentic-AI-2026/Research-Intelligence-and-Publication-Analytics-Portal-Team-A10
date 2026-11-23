@@ -1,6 +1,17 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 function setup(){
- class Element{constructor(){this.children=[];this.innerHTML='';this.textContent=''}append(...items){this.children.push(...items)}}
+ class Element{
+  constructor(){this.children=[];this.dataset={};this.innerHTML='';this.textContent='';this.elements=new Map()}
+  append(...items){this.children.push(...items)}
+  querySelector(selector){
+   if(!this.elements.has(selector)){
+    const el=new Element();
+    if(selector==='#reportPicker')el.value=(this.innerHTML.match(/<option value="([^"]+)" selected/)||this.innerHTML.match(/<option value="([^"]+)"/))?.[1]||'';
+    this.elements.set(selector,el);
+   }
+   return this.elements.get(selector);
+  }
+ }
  const elements=new Map(),calls=[];
  const document={querySelector(id){if(!elements.has(id))elements.set(id,new Element());return elements.get(id)},createElement(){return new Element()}};
  let source=fs.readFileSync(path.join(__dirname,'../dashboard/portal.js'),'utf8').split('\n').filter(line=>!line.startsWith("$('#loginForm')")&&!line.startsWith("$('#logout')")&&!line.startsWith('(async()=>')).join('\n');
@@ -33,12 +44,17 @@ test('pending rows show unknown values and review status',async()=>{
  assert.ok(ctx.box.innerHTML.includes('Needs review'));
  assert.ok(ctx.box.innerHTML.includes('Citation count unknown'))
 });
-test('reports list uses summaries and offers on-demand details',async()=>{
+test('report dropdown loads details only for the selected report',async()=>{
  const {ctx,Element}=setup();ctx.box=new Element();
- ctx.responses['/api/reports?page=1']={records:[{run_id:'run-a',status:'AWAITING_APPROVAL',detail_loaded:false,report:{title:'Draft',summary:{publications:1,citations:2}}}],total:1};
- await vm.runInContext('renderReportPage(box)',ctx);
+ ctx.responses['/api/reports?page=1']={records:[{run_id:'run-a',status:'AWAITING_APPROVAL',detail_loaded:false,report:{title:'Draft A',summary:{publications:1,citations:2}}},{run_id:'run-b',status:'AWAITING_APPROVAL',detail_loaded:false,report:{title:'Draft B',summary:{publications:3,citations:4}}}],total:2};
+ ctx.responses['/api/report?run_id=run-a']={run_id:'run-a',status:'AWAITING_APPROVAL',detail_loaded:true,report:{title:'Draft A',summary:{publications:1,citations:2},faculty_results:[]}};
+ await vm.runInContext("view='reports';renderReportPage(box)",ctx);
  assert.equal(ctx.calls[0],'/api/reports?page=1');
- assert.ok(ctx.box.children[0].children.some(e=>e.textContent==='Open report details'));
+ assert.equal(ctx.calls[1],'/api/report?run_id=run-a');
+ assert.ok(!ctx.calls.includes('/api/report?run_id=run-b'));
+ assert.equal(ctx.box.children[0].dataset.runId,'run-a');
+ assert.ok(ctx.box.innerHTML.includes('Choose a report'));
+ assert.ok(ctx.box.innerHTML.includes('Draft B'));
 });
 test('review controls wait for report detail and assigned Dean acceptance',()=>{
  const {ctx}=setup();

@@ -17,6 +17,24 @@ class HumanWorkflowTests(unittest.TestCase):
         self.assertEqual(status,200,result)
         return result['request_id']
 
+    def test_bulk_department_preview_and_send_through_authenticated_api(self):
+        office=self.officer()
+        for profile in self.service.faculty_profiles():
+            if profile['department']=='CSE':
+                profile['consent']['scopus']=False
+                self.service.save_faculty(profile)
+        body={'scope':'department','department':'CSE','sources':['scopus'],'message':'Annual department report consent request'}
+        status,preview,_=self.request('/api/consent/batch',body,office)
+        self.assertEqual(status,200,preview)
+        self.assertGreater(preview['recipient_count'],0)
+        self.assertEqual(self.request('/api/consent/batch',body,self.login('asha'))[0],403)
+        status,sent,_=self.request('/api/consent/batch',{**body,'confirm':True,'preview_token':preview['preview_token']},office)
+        self.assertEqual(status,200,sent)
+        self.assertEqual(sent['sent'],preview['recipient_count'])
+        _,workspace,_=self.request('/api/workspace',cookie=self.login('asha'))
+        self.assertTrue(workspace['consent_requests'])
+        self.assertTrue(all(r['faculty_id']=='F001' for r in workspace['consent_requests']))
+
     def test_faculty_approval_and_replay_protection(self):
         office=self.officer()
         profile=next(f for f in self.service.faculty_profiles() if f['faculty_id']=='F001')

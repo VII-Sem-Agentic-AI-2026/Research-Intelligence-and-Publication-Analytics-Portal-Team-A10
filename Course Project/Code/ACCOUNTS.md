@@ -1,5 +1,22 @@
 # Accounts and role-specific portals
 
+## Account filters and academic designations
+
+Administrators can combine department and designation filters in **Account access**,
+search by name, login ID or faculty ID, and page through 20 matching accounts at a
+time. Faculty departments come from the linked profile; HoDs use their assigned
+department. Institution-wide or unassigned accounts have a separate filter option.
+
+Supported designations are **Prof. & Head**, **Professor**, **Associate Professor**
+and **Assistant Professor**. Choose a designation when creating an account or use
+**Save designation** for an existing account. Previously unclassified accounts are
+shown as **Not set**; HoD accounts default to **Prof. & Head**. Designations do not
+change authorization roles or access scope. The Research Office is an account role,
+not an academic designation.
+
+The faculty overview hides the faculty-count card and shows the department name.
+The HoD overview shows its assigned department name rather than a department count.
+
 On their first sign-in, faculty select and confirm their department. The selection
 is stored on both the account and the linked faculty record in the dataset;
 existing and future publications inherit department membership through faculty ID.

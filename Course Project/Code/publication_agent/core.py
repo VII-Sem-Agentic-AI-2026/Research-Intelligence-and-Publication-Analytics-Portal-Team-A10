@@ -588,7 +588,16 @@ class PublicationOrchestrator:
                         return asdict(ctx)
         raise KeyError('Duplicate proposal not found')
 
-    def review_attribution(self, run_id, faculty_id, note, reviewer):
+    def review_attribution(self, run_id, faculty_id, note, reviewer, checks=None):
+        checklist = {
+            'identity_checked': 'Checked the faculty profile or author ID and matched the name and affiliation',
+            'publications_matched': 'Matched the listed publications to this faculty member',
+            'conflicts_resolved': 'Checked for namesakes and found no unresolved ownership conflicts',
+        }
+        if checks is not None:
+            if not isinstance(checks, dict) or set(checks) != set(checklist) or any(checks[k] is not True for k in checklist):
+                raise ValueError('Complete all three attribution checks before confirming')
+            note = 'Reviewer checklist: ' + '; '.join(checklist.values()) + '.'
         if len(str(note).strip()) < 12:
             raise ValueError('Provide an evidence note explaining faculty ownership of these publications')
         ctx = self.runtime.load_run(run_id)
@@ -596,10 +605,14 @@ class PublicationOrchestrator:
             raise ValueError('Only pending reports can be reviewed')
         for r in ctx.report['faculty_results']:
             if r['faculty']['faculty_id'] == faculty_id:
-                r.update(attribution_status='reviewer_confirmed', attribution_review={'reviewer':reviewer, 'note':note, 'time':now()})
+                review={'reviewer':reviewer, 'note':note, 'time':now()}
+                if checks is not None:
+                    review['checks']=dict(checks)
+                    review['check_labels']=checklist
+                r.update(attribution_status='reviewer_confirmed', attribution_review=review)
                 for p in r.get('publications', []):
                     p['attribution_status']='reviewer_confirmed'
-                self.runtime.audit('review.attribution', {'faculty_id':faculty_id}, {'reviewer':reviewer, 'note':note})
+                self.runtime.audit('review.attribution', {'faculty_id':faculty_id}, review)
                 self.runtime.checkpoint(ctx)
                 return asdict(ctx)
         raise KeyError('Faculty not found in report')

@@ -15,6 +15,7 @@ PERMISSIONS={
  'faculty': {'self_read','self_profile','self_upload','respond_consent'},
 }
 ROLE_LABELS={'dean':'Research Dean','hod':'HoD','research_office':'Research Office','admin':'Administrator','faculty':'Faculty'}
+DESIGNATIONS=('Prof. & Head','Professor','Associate Professor','Assistant Professor')
 class Forbidden(PermissionError): pass
 class AuthenticationError(PermissionError): pass
 
@@ -37,6 +38,8 @@ class Accounts:
             columns={r[1] for r in db.execute('PRAGMA table_info(users)')}
             if 'department_confirmed' not in columns:
                 db.execute('ALTER TABLE users ADD COLUMN department_confirmed INTEGER NOT NULL DEFAULT 0')
+            if 'designation' not in columns:
+                db.execute("ALTER TABLE users ADD COLUMN designation TEXT NOT NULL DEFAULT ''")
 
     @staticmethod
     def hash(password,salt):
@@ -44,7 +47,7 @@ class Accounts:
 
     @staticmethod
     def public(row):
-        return dict(zip(('id','username','name','role','faculty_id','department','active','department_confirmed'),row))
+        return dict(zip(('id','username','name','role','faculty_id','department','active','department_confirmed','designation'),row))
 
     def needs_setup(self):
         with self.store.connect() as db:return db.execute('SELECT count(*) FROM users').fetchone()[0]==0
@@ -59,6 +62,9 @@ class Accounts:
         if role=='hod' and not data.get('department'):raise ValueError('Assign a department for the HoD')
         name=str(data.get('name','')).strip()
         if not name:raise ValueError('Display name is required')
+        designation=str(data.get('designation','')).strip()
+        if designation and designation not in DESIGNATIONS:raise ValueError('Choose one of the four supported designations')
+        if role=='hod' and not designation:designation='Prof. & Head'
         salt=secrets.token_hex(16);hashed=self.hash(password,salt)
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
@@ -71,6 +77,7 @@ class Accounts:
             user_id=db.execute('SELECT next_id FROM account_id_sequence WHERE singleton=1').fetchone()[0]
             db.execute('UPDATE account_id_sequence SET next_id=next_id+1 WHERE singleton=1')
             db.execute('INSERT INTO users(id,username,name,role,faculty_id,department,password_hash,salt) VALUES (?,?,?,?,?,?,?,?)',(user_id,username,name,role,data.get('faculty_id') if role=='faculty' else None,str(data.get('department','')).upper(),hashed,salt))
+            db.execute('UPDATE users SET designation=? WHERE id=?',(designation,user_id))
             db.execute('INSERT INTO account_events VALUES (?,?,?,?)',((actor or {}).get('username','first-run'),'create',username,time.time()))
         return {'username':username,'role':role}
 
@@ -99,7 +106,7 @@ class Accounts:
 
     def principal(self,headers):
         with self.store.connect() as db:
-            row=db.execute('SELECT u.id,u.username,u.name,u.role,u.faculty_id,u.department,u.active,u.department_confirmed FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.digest=? AND s.expires>? AND u.active=1',(self.digest(headers),time.time())).fetchone()
+            row=db.execute('SELECT u.id,u.username,u.name,u.role,u.faculty_id,u.department,u.active,u.department_confirmed,u.designation FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.digest=? AND s.expires>? AND u.active=1',(self.digest(headers),time.time())).fetchone()
         if not row:raise AuthenticationError('Session expired; sign in again')
         return self.public(row)
 
@@ -107,7 +114,20 @@ class Accounts:
         with self.store.connect() as db:db.execute('DELETE FROM sessions WHERE digest=?',(self.digest(headers),))
 
     def users(self):
-        with self.store.connect() as db:return [self.public(r) for r in db.execute('SELECT id,username,name,role,faculty_id,department,active,department_confirmed FROM users ORDER BY username')]
+        with self.store.connect() as db:return [self.public(r) for r in db.execute('SELECT id,username,name,role,faculty_id,department,active,department_confirmed,designation FROM users ORDER BY username')]
+
+    def set_designation(self,user_id,designation,actor):
+        require(actor,'accounts')
+        if not isinstance(designation,str) or (designation and designation not in DESIGNATIONS):
+            raise ValueError('Choose one of the four supported designations')
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute('SELECT role,active FROM users WHERE id=?',(actor['id'],)).fetchone()!=('admin',1):
+                raise Forbidden('Administrator access required')
+            if not db.execute('SELECT id FROM users WHERE id=?',(user_id,)).fetchone():raise ValueError('Account not found')
+            db.execute('UPDATE users SET designation=? WHERE id=?',(designation,user_id))
+            db.execute('INSERT INTO account_events VALUES (?,?,?,?)',(actor['username'],'set_designation',str(user_id)+': '+designation,time.time()))
+        return {'saved':True,'user_id':user_id,'designation':designation}
 
     def confirm_department(self,identity,department,service):
         """Commit the account and its linked dataset profile in one transaction."""

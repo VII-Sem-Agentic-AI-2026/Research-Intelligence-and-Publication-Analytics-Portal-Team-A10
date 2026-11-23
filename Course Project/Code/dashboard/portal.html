@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research Portal · Sign in</title><link rel="stylesheet" href="/portal.css"></head>
-<body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Research Portal · Sign in</title><link rel="stylesheet" href="/portal.css?v=20261123-group-consent"></head>
+<body><a class="skip-content" href="#content">Skip to workspace content</a>
 <section id="authScreen" class="auth-shell">
   <div class="intro"><span class="eyebrow">RESEARCH INTELLIGENCE</span><h1>Your research.<br>A shared standard.</h1><p>A personal workspace for faculty, a clear review queue for academic leaders, and accountable publication decisions.</p><div class="features"><span>Faculty workspace</span><span>Human review</span><span>Publication analytics</span></div></div>
   <div class="login-card"><span class="eyebrow" id="authEyebrow">WELCOME BACK</span><h2 id="authTitle">Sign in to your workspace</h2><p id="authDescription">Your account determines the records and actions available to you.</p><form id="loginForm">
@@ -12,7 +12,7 @@
 </section>
 <div id="appScreen" hidden>
  <aside class="sidebar"><a class="brand" href="/">RI<span>Research Intelligence</span></a><div id="identity" class="identity"></div><nav id="navigation"></nav><div class="sidebar-bottom"><button id="passwordNav" class="secondary">Change password</button><button id="logout" class="secondary">Sign out</button></div></aside>
- <main><header><div><span class="eyebrow" id="workspaceLabel"></span><h1 id="pageTitle">Overview</h1></div><button id="refresh" class="secondary">Refresh</button></header><p id="notice" role="status"></p><div id="content"></div></main>
+ <main><header class="workspace-header"><div><button id="backToOverview" type="button" class="text-button" hidden>← Back</button><span class="eyebrow" id="workspaceLabel"></span><h1 id="pageTitle">Overview</h1></div><button id="refresh" class="secondary">Refresh workspace</button></header><p id="notice" role="status"></p><div id="content"></div><footer class="workspace-footer">Research Intelligence <span>Faculty · Publications · Institutional insights</span></footer></main>
 </div>
 <button id="assistantLauncher" class="assistant-launcher" hidden aria-label="Open research assistant" aria-expanded="false">✦ Assistant</button>
 <section id="assistantPanel" class="assistant-panel" hidden aria-label="Research assistant">
@@ -23,4 +23,4 @@
  <form id="assistantForm" class="assistant-composer"><label class="sr-only" for="assistantInput">Message the assistant</label><textarea id="assistantInput" rows="2" maxlength="6000" placeholder="Ask a question or ask me to generate a report…" required></textarea><button id="assistantSend">Send</button></form>
  <p class="assistant-footnote">Uses your account permissions. Enter passwords and API keys only in secure forms, never in chat.</p>
 </section>
-<script src="/portal.js"></script><script src="/chat-format.js"></script><script src="/assistant-widget.js"></script></body></html>
+<script src="/portal.js?v=20261123-group-consent"></script><script src="/chat-format.js?v=20261121-report2"></script><script src="/assistant-widget.js?v=20261121-report2"></script></body></html>
