@@ -100,6 +100,30 @@ administrator's Configure AI form. Legacy groq_* field and module names remain
 for saved-report compatibility; they do not indicate current Groq requests.
 Model availability, quotas and billing depend on the user's provider account.
 
+## Agentic AI concepts demonstrated
+
+The portal applies the following concepts to a concrete task: turning authorized
+publication records into traceable analytics and human-approved reports.
+
+| Evaluation parameter | How we use it in this project | Implementation evidence |
+|---|---|---|
+| Agents | A coordinator manages the reporting goal and delegates profile checks, source reads, duplicate detection, citation analytics, formatting and validation to specialized components. The compiled LangGraph connects their outputs into a complete report workflow, with Gemini providing an advisory plan and explanation. | [Compiled workflow](Course%20Project/Code/publication_agent/groq_graph.py), [lab stages](Course%20Project/Code/publication_agent/labs/) |
+| Skills | `PlanSkill` converts clarified inputs into a structured reporting plan, and `ReportFormattingSkill` assembles results into a consistent report. These reusable components work across departments, reporting years and metric packs. | [Skill implementations](Course%20Project/Code/publication_agent/core.py), [reusable skill binding](Course%20Project/Code/publication_agent/labs/lab03_reusable_skills.py) |
+| MCP | The report workflow connects LangChain tools to a working local stdio MCP server. Its `faculty_profiles`, `faculty_profile` and `publications_for_faculty` tools read consented records from a frozen dataset snapshot and preserve source provenance. | [MCP integration guide](Course%20Project/Code/MCP.md), [MCP server](Course%20Project/Code/publication_agent/mcp_server.py), [protocol tests](Course%20Project/Code/tests/test_local_mcp.py) |
+| Swarms | Faculty workers process independent faculty tasks concurrently with a configurable worker limit. Their results join in stable faculty-ID order before report assembly, validation and human review. This provides coordinated parallel work with explicit responsibilities and dependencies. | [Parallel faculty workflow](Course%20Project/Code/publication_agent/labs/lab08_parallel_swarm.py), [dependency pipeline](Course%20Project/Code/publication_agent/labs/pipeline.py) |
+| Deep Research | Source-grounded publication analysis combines authorized Scholar, Scopus and WoS exports, preserves source IDs, URLs and retrieval dates, and checks evidence before reporting. Citation methods, duplicate proposals and source coverage make findings relevant to the research task and traceable for reviewers. | [Evidence grounding](Course%20Project/Code/publication_agent/labs/lab09_grounding.py), [source-aware explanations](Course%20Project/Code/publication_agent/narrative.py), [report validation](Course%20Project/Code/publication_agent/validation.py) |
+
+### Supporting engineering strengths
+
+- **Reproducible analytics:** Python computes citation metrics and validates
+  numerical results independently of the language model.
+- **Human oversight:** attribution evidence, duplicate decisions and authorized
+  academic approval govern the release of versioned reports.
+- **Tested integrations:** regression tests exercise account permissions, source
+  consent, imports, metrics, the compiled graph and actual MCP protocol calls.
+- **Version-controlled delivery:** GitHub stores the application, tests, original
+  problem statement, setup instructions and final report together for review.
+
 ## Implementation
 
 ### Faculty intake and source data
